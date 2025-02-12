@@ -50,7 +50,7 @@ const Read = () => {
         />
       </div>
       <div className="d-flex justify-content-between m-2">
-        <h2>Read Operation</h2>
+        <h2>Read</h2>
         <Link to="/">
           <button className="btn btn-secondary">Create</button>
         </Link>
