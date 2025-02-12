@@ -8,7 +8,7 @@ const Header = () => {
   return (
     <header className="bg-primary text-white p-3">
       <div className="container">
-        <h1>My Application</h1>
+        <h1>Crud Application</h1>
         <nav>
           <Link to="/" className="text-white">Home</Link>
           {(currentPath === '/' || currentPath === '/create' || currentPath === '/update') && (
