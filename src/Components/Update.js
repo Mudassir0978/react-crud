@@ -1,60 +1,64 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import useStore from "../store";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
-// Zod schema for form validation
 const schema = z.object({
   name: z.string().min(1, { message: "Name is required" }).max(50, { message: "Name cannot exceed 50 characters" }),
   email: z.string().email({ message: "Invalid email address" }).max(100, { message: "Email cannot exceed 100 characters" }),
   city: z.string().min(1, { message: "City is required" }).max(50, { message: "City cannot exceed 50 characters" }),
-  country: z.string().min(1, { message: "Country is required" }).max (50, { message: "Country cannot exceed 50 characters" }),
-  phone: z
-    .string()
-    .min(10, { message: "Phone number must be at least 10 digits" })
-    .max(15, { message: "Phone number cannot exceed 15 digits" })
-    .regex(/^\d+$/, { message: "Phone number must contain only digits" }),
+  country: z.string().min(1, { message: "Country is required" }).max(50, { message: "Country cannot exceed 50 characters" }),
+  phone: z.string().min(10, { message: "Phone number must be at least 10 digits" }).max(15, { message: "Phone number cannot exceed 15 digits" }).regex(/^\d+$/, { message: "Phone number must contain only digits" }),
 });
 
 const Update = () => {
   const navigate = useNavigate();
-  const [id, setId] = useState(null);
-
-  // Initialize react-hook-form with Zod resolver
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    formState: { errors },
-  } = useForm({
+  const { editingEntry, setFormData } = useStore();
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(schema),
   });
 
   useEffect(() => {
-    setId(localStorage.getItem("id"));
-    setValue("name", localStorage.getItem("name"));
-    setValue("email", localStorage.getItem("email"));
-    setValue("city", localStorage.getItem("city"));
-    setValue("country", localStorage.getItem("country"));
-    setValue("phone", localStorage.getItem("phone"));
-  }, [setValue]);
+    setValue("name", editingEntry.name);
+    setValue("email", editingEntry.email);
+    setValue("city", editingEntry.city);
+    setValue("country", editingEntry.country);
+    setValue("phone", editingEntry.phone);
+  }, [editingEntry, setValue]);
 
-  // Form submission handler
-  const onSubmit = (data) => {
-    axios
-      .put(`https://678b8a801a6b89b27a2aabe0.mockapi.io/crud-basicProject/${id}`, {
-        name: data.name,
-        email: data.email,
-        city: data.city,
-        country: data.country,
-        phone: data.phone,
-      })
-      .then(() => {
-        navigate("/read");
-      });
-  };
+  // const onSubmit = (data) => {
+  //   axios
+  //     .put(`https://678b8a801a6b89b27a2aabe0.mockapi.io/crud-basicProject/${editingEntry.id}`, data)
+  //     .then(() => {
+  //       setFormData(data);
+  //       navigate("/read");
+  //     })
+  //     .catch((error) => {
+  //       console.error("Error updating data:", error);
+  //     });
+  // };
+
+  const queryClient = useQueryClient();
+
+const mutation = useMutation({
+  mutationFn: (updatedData) => axios.put(`https://678b8a801a6b89b27a2aabe0.mockapi.io/crud-basicProject/${editingEntry.id}`, updatedData),
+  onSuccess: () => {
+    queryClient.invalidateQueries(["entries"]);
+  },
+});
+
+const onSubmit = (data) => {
+  mutation.mutate(data, {
+    onSuccess: () => {
+      setFormData(data);
+      navigate("/read");
+    },
+  });
+};
 
   return (
     <>
@@ -120,9 +124,7 @@ const Update = () => {
             <div className="invalid-feedback">{errors.phone.message}</div>
           )}
         </div>
-        <button type="submit" className="btn btn-primary">
-          Submit
-        </button>
+        <button type="submit" className="btn btn-primary">Submit</button>
       </form>
     </>
   );

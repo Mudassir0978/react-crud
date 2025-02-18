@@ -1,41 +1,44 @@
-import React, { useState, useEffect } from 'react'
-import axios from 'axios'
+// Read.js
+import React, { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import axios from "axios";
 import { Link } from "react-router-dom";
+import useStore from "../store";
+
+const fetchEntries = async () => {
+  const res = await axios.get("https://678b8a801a6b89b27a2aabe0.mockapi.io/crud-basicProject");
+  return res.data;
+};
 
 const Read = () => {
-  const [data, setData] = useState([]);
+  const queryClient = useQueryClient();
+
+  const { data, isLoading, error } = useQuery({
+    queryKey: ["entries"],
+    queryFn: fetchEntries,
+    staleTime: Infinity, 
+    cacheTime: Infinity,
+    refetchOnWindowFocus: false, 
+    refetchOnMount: false, 
+  });
+  
+  
+  const { setEntries, setEditingEntry } = useStore();
   const [tabledark, setTableDark] = useState("");
 
-  function getData() {
-    axios.get("https://678b8a801a6b89b27a2aabe0.mockapi.io/crud-basicProject")
-      .then((res) => {
-        console.log(res.data);
-        setData(res.data)
-      });
-  }
-
-  function handleDelete(id) {
-    const confirmed = window.confirm("Are you sure you want to delete?");
-    if (confirmed) {
-      axios.delete(`https://678b8a801a6b89b27a2aabe0.mockapi.io/crud-basicProject/${id}`)
-        .then(() => {
-          getData();
-        })
-    }
-  }
-
-  const setToLocalStorage = (id, name, email, city, country, phone) => {
-    localStorage.setItem("id", id);
-    localStorage.setItem("name", name);
-    localStorage.setItem("email", email);
-    localStorage.setItem("city", city);
-    localStorage.setItem("country", country);
-    localStorage.setItem("phone", phone);
-  };
-
   useEffect(() => {
-    getData();
-  }, []);
+    if (data) setEntries(data);
+  }, [data, setEntries]);
+
+  const deleteEntry = useMutation({
+    mutationFn: (id) => axios.delete(`https://678b8a801a6b89b27a2aabe0.mockapi.io/crud-basicProject/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries("entries");
+    },
+  });
+
+  if (isLoading) return <div>Loading...</div>;
+  if (error) return <div>Error loading data</div>;
 
   return (
     <>
@@ -43,10 +46,7 @@ const Read = () => {
         <input
           className="form-check-input"
           type="checkbox"
-          onClick={() => {
-            if (tabledark === "table-dark") setTableDark("");
-            else setTableDark("table-dark");
-          }}
+          onClick={() => setTableDark(tabledark === "" ? "table-dark" : "")}
         />
       </div>
       <div className="d-flex justify-content-between m-2">
@@ -69,38 +69,26 @@ const Read = () => {
           </tr>
         </thead>
         <tbody>
-          {data.map((eachData) => (
-            <tr key={eachData.id}>
-              <th scope="row">{eachData.id}</th>
-              <td>{eachData.name}</td>
-              <td>{eachData.email}</td>
-              <td>{eachData.city}</td>
-              <td>{eachData.country}</td>
-              <td>{eachData.phone}</td>
+          {data.map((entry) => (
+            <tr key={entry.id}>
+              <th scope="row">{entry.id}</th>
+              <td>{entry.name}</td>
+              <td>{entry.email}</td>
+              <td>{entry.city}</td>
+              <td>{entry.country}</td>
+              <td>{entry.phone}</td>
               <td>
                 <Link to="/update">
                   <button
                     className="btn btn-success"
-                    onClick={() =>
-                      setToLocalStorage(
-                        eachData.id,
-                        eachData.name,
-                        eachData.email,
-                        eachData.city,
-                        eachData.country,
-                        eachData.phone
-                      )
-                    }
+                    onClick={() => setEditingEntry(entry)}
                   >
                     Edit
                   </button>
                 </Link>
               </td>
               <td>
-                <button
-                  className="btn btn-danger"
-                  onClick={() => handleDelete(eachData.id)}
-                >
+                <button className="btn btn-danger" onClick={() => deleteEntry.mutate(entry.id)}>
                   Delete
                 </button>
               </td>

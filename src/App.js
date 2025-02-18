@@ -1,13 +1,17 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import Create from "./Components/Create";
 import Read from "./Components/Read";
 import Update from "./Components/Update";
 import Layout from "./Components/Layout";
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
-    <div>
+    <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
           <Route path="/" element={<Layout />}>
@@ -18,7 +22,8 @@ function App() {
           </Route>
         </Routes>
       </Router>
-    </div>
+      <ReactQueryDevtools initialIsOpen={true} />
+    </QueryClientProvider>
   );
 }
 
